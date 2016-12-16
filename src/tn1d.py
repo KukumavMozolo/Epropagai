@@ -1,5 +1,4 @@
 import numpy as np
-import t0n
 from scipy.stats import norm
 
 #here are equations 26 -42
