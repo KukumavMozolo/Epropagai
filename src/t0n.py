@@ -26,7 +26,7 @@ class t0n:
 
     #after where statement
 
-    def getvOld(self, v: np.ndarray, vi: np.ndarray) -> np.ndarray: #22
+    def getVOld(self, v: np.ndarray, vi: np.ndarray) -> np.ndarray: #22
         return NotImplemented
 
 

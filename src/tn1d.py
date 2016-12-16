@@ -1,4 +1,5 @@
 import numpy as np
+import t0n
 
 #here are equations 26 -42
 class tn1d:
