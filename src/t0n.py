@@ -8,7 +8,7 @@ class t0n:
         return muOld + ai* np.multiply(vOld, xi)
 
     def getVNew(self, vOld: np.ndarray, xi: np.ndarray, muNew: np.ndarray, ai: float): #18
-        return vOld - ai * (np.dot(xi,muNew) + ai)/(np.dot(xi,np.multiply(vOld,xi)) +1) * np.multiply(vOld, xi) * np.multiply(vOld,xi)
+        return vOld - ai * (np.dot(xi,muNew) + ai)/(np.dot(xi,np.multiply(vOld,xi)) +1.0) * np.multiply(vOld, xi) * np.multiply(vOld,xi)
 
     def getvViNew(self, vNew: np.ndarray, vOld: np.ndarray) -> np.ndarray:#19
         return np.reciprocal(np.reciprocal(vNew) - np.reciprocal(vOld))
@@ -18,7 +18,7 @@ class t0n:
 
     def getSi(self, z:float, viNew: np.ndarray, vOld: np.ndarray, miNew: np.ndarray, muOld: np.ndarray) -> float:#21
         #not sure about this
-        return norm.cdf(z) + np.prod(np.sqrt(np.divide(viNew + vOld, viNew))) * np.exp(np.sum(np.divide(np.power(miNew - muOld,2), 2 *(vOld + viNew))))
+        return norm.cdf(z) * np.prod(np.sqrt(np.divide(viNew + vOld, viNew))) * np.exp(np.sum(np.divide(np.power(miNew - muOld,2), 2 *(vOld + viNew))))
 
 
     #after where statement
@@ -34,4 +34,4 @@ class t0n:
         return 1.0/np.sqrt(np.dot(xi,np.multiply(vOld,xi)) +1) * norm.pdf(z)/norm.cdf(z)
 
     def getZi(self, xi: np.ndarray, muOld: np.ndarray, vOld: np.ndarray) -> float: #25
-        return np.dot(xi,muOld)/np.sqrt(np.dot(xi, np.multiply(vOld,xi)) +1)
+        return np.dot(xi,muOld)/np.sqrt(np.dot(xi, np.multiply(vOld,xi)) +1.0)

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import norm
 
 from src.t0n import t0n
 from src.tn1d import tn1d
@@ -6,7 +7,7 @@ from src.tn1d import tn1d
 
 class ExpectationPropagation:
 
-    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
+    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.00000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
         xshape = x.shape
         yshape = y.shape
         assert xshape[1] == yshape[1], "x and y have different sample dimensions, x.shape = " + str(xshape)  + " y.shape = " + str(yshape)
@@ -30,25 +31,25 @@ class ExpectationPropagation:
         self.mmu = np.zeros(shape=(d,n + d))
 
         #these are only for convergence checking
-        self.a_c =  np.ones(shape=(n + d)) * 0.1
+        self.a_c =  np.ones(shape=(n + d)) * 10000000
         self.b_c = np.ones(shape=(n + d))
         self.vv_c = np.ones(shape=(d,n +d)) * 10000000
         self.mmu_c = np.zeros(shape=(d,n + d))
         while(self.notConverged(conv_tol)):
             for i in range(n + d):  #refine approximation of ti
                 self.iterationCounter += 1
-                xi = x[:,np.random.random_integers(0,n-1)]
+                # xi = x[:,np.random.random_integers(0,n-1)]
+                xi = x[:, i%n]
                 if(np.sum(np.abs(xi)) == 0):
                     continue
                 vvi = self.vv[:,i]
                 mmi = self.mmu[:,i]
-                if(i <=n): #the likelihoods
-
-                    #missing whenever likelihood is negative ignores rule
-
+                if(i <n): #the likelihoods
 
                     #where statement
                     vOld = tn.getVOld(v, vvi)
+                    if(np.where(vOld <0)[0].shape[0] >0): #whenever likelihood is negative ignore rule
+                        continue
                     muOld = tn.getMuOld(mu,vOld,vvi,mmi)
                     z = tn.getZi(xi,muOld,vOld)
                     ai = tn.getAlphai(xi,vOld,z)
@@ -98,22 +99,28 @@ class ExpectationPropagation:
 
                 self.s[i] = si
         print("the algorithm took " + str(self.iterationCounter) + " iterations to converge!")
+        print(mu)
+        print(v)
+        def f(x) : return norm.cdf(np.dot(x.T, mu)/np.sqrt(np.dot(x.T,np.multiply(v,x.T).T) +1))
+        return f
 
 
 
 
     def notConverged(self, conv_tol) -> bool:
+        d, n = self.a.shape
         delta = np.sum(np.abs(self.a-self.a_c)) \
                 + np.sum(np.abs(self.b-self.b_c))\
                 + np.sum(np.abs(self.vv-self.vv_c))\
                 + np.sum(np.abs(self.mmu-self.mmu_c))
-        print("Parameter diference is " + str(delta) +" at iteration " + str(self.iterationCounter))
+        delta /= d * n * 4
+        print("Parameter difference is " + str(delta) +" at iteration " + str(self.iterationCounter))
 
         if(delta > conv_tol):
-            self.a_c = self.a
-            self.b_c = self.b
-            self.vv_c = self.vv
-            self.mmu_c = self.mmu
+            self.a_c = self.a.copy()
+            self.b_c = self.b.copy()
+            self.vv_c = self.vv.copy()
+            self.mmu_c = self.mmu.copy()
             return True
         False
 
