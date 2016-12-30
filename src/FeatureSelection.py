@@ -103,7 +103,7 @@ class ExpectationPropagation:
         print("the algorithm took " + str(self.iterationCounter) + " iterations to converge!")
         print(mu)
         print(v)
-        def f(x) : return norm.cdf(np.dot(x.T, mu)/np.sqrt(np.dot(x.T,np.multiply(v,x.T).T) +1))
+        def f(x) : return norm.cdf(np.dot(x.T, mu)/np.sqrt(np.dot(x.T,np.multiply(v,x.T).T) +1.0))
         return f
 
 
