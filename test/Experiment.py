@@ -8,7 +8,7 @@ class Experiment:
     def getExampleData(self, nrPoints: int, noise = 0.0):
         x = np.random.uniform(0,1,size=(2,nrPoints))
         y = np.ones(shape=(1,nrPoints))
-        y[0,np.where(x[0,:] >=0.5)] = 0
+        y[0,np.where(x[0,:] >=0.5)] = -1
         if(noise > 0.0):
             y[0,np.random.binomial(1, noise, (1,nrPoints)).tolist()] = 1
         return x,y
@@ -28,7 +28,7 @@ def main():
     ep = ExpectationPropagation()
     x,y = experiment.getExampleData(100,noise=0.0)
     experiment.plot(x,y)
-    f = ep.run(x,y,1.0, conv_tol=3)
+    f = ep.run(x,y,0.7, conv_tol=0.001)
     testx, _ = experiment.getExampleData(1, noise=0.0)
     x_test  =np.array([[0.1,0],[0.2,0],[0.3,0],[0.4,0],[0.5,0],[0.6,0],[0.7,0],[0.8,0],[0.9,0]])
     x_test2  =np.array([[0,0.1],[0,0.2],[0,0.3],[0,0.4],[0,0.5],[0,0.6],[0,0.7],[0,0.8],[0,0.9]])

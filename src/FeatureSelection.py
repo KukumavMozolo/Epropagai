@@ -13,6 +13,8 @@ class ExpectationPropagation:
         assert xshape[1] == yshape[1], "x and y have different sample dimensions, x.shape = " + str(xshape)  + " y.shape = " + str(yshape)
         assert y.shape[0] == 1, "y should be one dimensional"
         x = np.multiply(x,y)
+        assert sparsety <1.0, "sparsety should be inbetween 0 and 1"
+        assert sparsety >0.0, "sparsety should be inbetween 0 and 1"
         tn = t0n()
         tn1 = tn1d()
         d,n = x.shape
@@ -113,7 +115,7 @@ class ExpectationPropagation:
                 + np.sum(np.abs(self.b-self.b_c))\
                 + np.sum(np.abs(self.vv-self.vv_c))\
                 + np.sum(np.abs(self.mmu-self.mmu_c))
-        delta /= d * n * 4
+        # delta /= d * n * 4
         print("Parameter difference is " + str(delta) +" at iteration " + str(self.iterationCounter))
 
         if(delta > conv_tol):
