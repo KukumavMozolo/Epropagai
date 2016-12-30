@@ -6,27 +6,43 @@ from src.tn1d import tn1d
 
 class ExpectationPropagation:
 
-    def run(self, data: np.ndarray, sparsety: float, sigma0: float = 0.000001, sigma1: float = 1.0 , iterations =-1, untilConverged= 0.0) -> np.ndarray:
+    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
+        xshape = x.shape
+        yshape = y.shape
+        assert xshape[1] == yshape[1], "x and y have different sample dimensions, x.shape = " + str(xshape)  + " y.shape = " + str(yshape)
+        assert y.shape[0] == 1, "y should be one dimensional"
+        x = np.multiply(x,y)
         tn = t0n()
         tn1 = tn1d()
-        d,n = data.shape
+        d,n = x.shape
+
+        self.iterationCounter = 0
 
         mu = np.random.uniform(0.0, 1.0, size=(d)) # not sure how to initialize
         v = np.random.uniform(0.0, 1.0, size=(d))  # not sure how to initialize
         p = np.ones(shape=(d)) * sparsety
 
+        ## uniform initial condition of ti
+        self.s = np.zeros(shape=(n + d))
+        self.a =  np.ones(shape=(d,n + d))
+        self.b = np.ones(shape=(d,n + d))
+        self.vv = np.ones(shape=(d,n +d)) * 10000000
+        self.mmu = np.zeros(shape=(d,n + d))
 
-        vv = np.ones(shape=(d,n +d)) * 10000000    ## uniform initial condition of ti
-        mmu = np.zeros(shape=(d,n + d))     ## uniform initial condition of ti
-        s = np.zeros(shape=(n + d))
-        a =  np.ones(shape=(n + d))
-        b = np.ones(shape=(n + d))
-        while(not self.converged(a,b, vv, mmu)):
-            for i in range(n + d):
-                xi = data[:,i]
-                vvi = vv[:,i]
-                mmi = mmu[:,i]
-                if(i <=n):
+        #these are only for convergence checking
+        self.a_c =  np.ones(shape=(n + d)) * 0.1
+        self.b_c = np.ones(shape=(n + d))
+        self.vv_c = np.ones(shape=(d,n +d)) * 10000000
+        self.mmu_c = np.zeros(shape=(d,n + d))
+        while(self.notConverged(conv_tol)):
+            for i in range(n + d):  #refine approximation of ti
+                self.iterationCounter += 1
+                xi = x[:,np.random.random_integers(0,n-1)]
+                if(np.sum(np.abs(xi)) == 0):
+                    continue
+                vvi = self.vv[:,i]
+                mmi = self.mmu[:,i]
+                if(i <=n): #the likelihoods
 
                     #missing whenever likelihood is negative ignores rule
 
@@ -36,26 +52,27 @@ class ExpectationPropagation:
                     muOld = tn.getMuOld(mu,vOld,vvi,mmi)
                     z = tn.getZi(xi,muOld,vOld)
                     ai = tn.getAlphai(xi,vOld,z)
-                    z = tn.getZi(xi,muOld,vOld)
 
                     muNew = tn.getMuNew(muOld,vOld,xi,ai)
                     vNew = tn.getVNew(vOld,xi,muNew,ai)
                     vviNew = tn.getvViNew(vNew,vOld)
                     mmiNew = tn.getMuNew(muOld,vOld,xi,ai)
                     si = tn.getSi(z,vviNew,vOld,mmiNew,muOld)
-                else:
+                    self.vv[:, i] = vviNew
+                    self.mmu[:, i] = mmiNew
+                else: #the priors
                     # 26 - 42
                     vi = v[i-n]
                     mui= mu[i-n]
                     pi = p[i-n]
-                    aai = a[i]
-                    bbi = b[i]
+                    aai = self.a[:,i]
+                    bbi = self.b[:,i]
 
-                    viOld = tn1.getViOld(vi, vvi)
-                    muiOld = tn1.getMuiOld(mui,viOld,vvi,mmi)
+                    viOld = tn1.getViOld(vi, vvi[i-n])
+                    muiOld = tn1.getMuiOld(mui,viOld,vvi[i-n],mmi[i-n])
                     g0 = tn1.getG0(muiOld,viOld,sigma0)
                     g1 = tn1.getG1(muiOld,viOld,sigma1)
-                    piOld = tn1.getPiOld(pi,aai,bbi)
+                    piOld = tn1.getPiOld(pi,aai[i-n],bbi[i-n])
                     z = tn1.getZ(piOld,g1,g0)
                     c1 = tn1.getC1(z,piOld,g0,g1,muiOld,viOld,sigma1,sigma0)
                     c2 = tn1.getC2(z,piOld,g1,g0,muiOld,viOld,sigma1,sigma0)
@@ -64,26 +81,41 @@ class ExpectationPropagation:
                     muiNew = tn1.getMuiNew(muiOld,c1,viOld)
                     viNew = tn1.getViNew(viOld,c3)
                     piNew = tn1.getPiNew(piOld,g1,g0)
-                    vviNew = tn1.getvViNew(viOld,c3)
-                    mmiNew = tn1.getmMiNew(muiOld,c1,vviNew,viOld)
-                    aaiNew = tn1.getaAiNew(piNew,piOld)
-                    bbiNew = tn1.getbBiNew(piNew,piOld)
-                    si = tn1.getSi(z,viOld,vviNew,c1,c3)
+                    vvniiNew = tn1.getvViNew(viOld,c3)
+                    mmniiNew = tn1.getmMiNew(muiOld,c1,vvniiNew,viOld)
+                    aaniiNew = tn1.getaAiNew(piNew,piOld)
+                    bbniiNew = tn1.getbBiNew(piNew,piOld)
+                    si = tn1.getSi(z,viOld,vvniiNew,c1,c3)
 
-                    a[i] = aaiNew
-                    b[i] = bbiNew
-                    v[i] = viNew
+                    self.a[i - n,i] = aaniiNew
+                    self.b[i - n,i] = bbniiNew
+                    self.vv[i - n,i] = vvniiNew
+                    self.mmu[i - n,i]= mmniiNew
+                    v[i - n] = viNew
                     mu[i - n] = muiNew
                     p[i-n] = piNew
-                vv[:,i] = vviNew
-                mmu[:,i] = mmiNew
-                s[i] = si
+
+
+                self.s[i] = si
+        print("the algorithm took " + str(self.iterationCounter) + " iterations to converge!")
 
 
 
 
-    def converged(self, tiOld:np.ndarray, tiNew: np.ndarray) -> bool:
-        return NotImplemented
+    def notConverged(self, conv_tol) -> bool:
+        delta = np.sum(np.abs(self.a-self.a_c)) \
+                + np.sum(np.abs(self.b-self.b_c))\
+                + np.sum(np.abs(self.vv-self.vv_c))\
+                + np.sum(np.abs(self.mmu-self.mmu_c))
+        print("Parameter diference is " + str(delta) +" at iteration " + str(self.iterationCounter))
+
+        if(delta > conv_tol):
+            self.a_c = self.a
+            self.b_c = self.b
+            self.vv_c = self.vv
+            self.mmu_c = self.mmu
+            return True
+        False
 
 
 

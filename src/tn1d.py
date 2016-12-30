@@ -42,7 +42,8 @@ class tn1d:
 
     def getC2(self, z: float, piOld: float, g1:float, g0:float, muiOld: float, viOld: float, sigma1: float, sigma0: float) -> float: #38
         def helper(muiOld: float, viOld: float, sigma1: float):
-            return np.power(muiOld, 2) / np.power(viOld + np.power(sigma1,2)) - 1.0/(viOld + np.power(sigma1,2))
+            return np.power(muiOld, 2) / np.power(viOld + np.power(sigma1,2), 2) - 1.0/(viOld + np.power(sigma1,2))
+
         return np.reciprocal(z) * 0.5 * (piOld*g1*helper(muiOld, viOld, sigma1) + (1.0 -piOld) * g0 * helper(muiOld, viOld, sigma0))
 
     def getC3(self, c1: float, c2: float)-> float: #39
