@@ -7,7 +7,7 @@ from src.tn1d import tn1d
 
 class ExpectationPropagation:
 
-    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.00000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
+    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.00000000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
         xshape = x.shape
         yshape = y.shape
         assert xshape[1] == yshape[1], "x and y have different sample dimensions, x.shape = " + str(xshape)  + " y.shape = " + str(yshape)
@@ -20,28 +20,29 @@ class ExpectationPropagation:
         d,n = x.shape
 
         self.iterationCounter = 0
+        max = 99999
 
-        mu = np.random.uniform(0.0, 1.0, size=(d)) # not sure how to initialize
-        v = np.random.uniform(0.0, 1.0, size=(d))  # not sure how to initialize
+        mu = np.zeros(shape=(d)) # not sure how to initialize
+        v = np.ones(shape=(d))  # not sure how to initialize
         p = np.ones(shape=(d)) * sparsety
 
         ## uniform initial condition of ti
         self.s = np.zeros(shape=(n + d))
         self.a =  np.ones(shape=(d,n + d))
         self.b = np.ones(shape=(d,n + d))
-        self.vv = np.ones(shape=(d,n +d)) * 10000000
+        self.vv = np.ones(shape=(d,n +d)) * max
         self.mmu = np.zeros(shape=(d,n + d))
 
         #these are only for convergence checking
-        self.a_c =  np.ones(shape=(n + d)) * 10000000
+        self.a_c =  np.ones(shape=(n + d)) * max
         self.b_c = np.ones(shape=(n + d))
-        self.vv_c = np.ones(shape=(d,n +d)) * 10000000
+        self.vv_c = np.ones(shape=(d,n +d)) * max
         self.mmu_c = np.zeros(shape=(d,n + d))
         while(self.notConverged(conv_tol)):
             for i in range(n + d):  #refine approximation of ti
                 self.iterationCounter += 1
-                # xi = x[:,np.random.random_integers(0,n-1)]
-                xi = x[:, i%n]
+                xi = x[:,np.random.random_integers(0,n-1)]
+                # xi = x[:, i%n]
                 if(np.sum(np.abs(xi)) == 0):
                     continue
                 vvi = self.vv[:,i]
@@ -59,15 +60,18 @@ class ExpectationPropagation:
                     muNew = tn.getMuNew(muOld,vOld,xi,ai)
                     vNew = tn.getVNew(vOld,xi,muNew,ai)
                     vviNew = tn.getvViNew(vNew,vOld)
-                    mmiNew = tn.getMuNew(muOld,vOld,xi,ai)
+                    mmiNew = tn.getMiNew(muOld,vviNew,xi,vOld,ai)
+                    #i think one can conclude that we should update only these(17-21)
                     si = tn.getSi(z,vviNew,vOld,mmiNew,muOld)
                     self.vv[:, i] = vviNew
                     self.mmu[:, i] = mmiNew
+                    mu = muNew
+                    v = vNew
                 else: #the priors
                     # 26 - 42
-                    vi = v[i-n]
-                    mui= mu[i-n]
-                    pi = p[i-n]
+                    vi = v[i-n]         #mentioned in eq.34. what is it?
+                    mui= mu[i-n]        # so is this in eq.35. what is it?
+                    pi = p[i-n]         #same here eq. 42 what is it?
                     aai = self.a[:,i]
                     bbi = self.b[:,i]
 
@@ -88,8 +92,9 @@ class ExpectationPropagation:
                     mmniiNew = tn1.getmMiNew(muiOld,c1,vvniiNew,viOld)
                     aaniiNew = tn1.getaAiNew(piNew,piOld)
                     bbniiNew = tn1.getbBiNew(piNew,piOld)
-                    si = tn1.getSi(z,viOld,vvniiNew,c1,c3)
+                    si = tn1.getSi(z,viOld,vvniiNew,c1,c3) #unsure
 
+                    #and here we should update only these (26 - 33)
                     self.a[i - n,i] = aaniiNew
                     self.b[i - n,i] = bbniiNew
                     self.vv[i - n,i] = vvniiNew

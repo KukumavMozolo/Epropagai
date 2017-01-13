@@ -30,8 +30,8 @@ def main():
     experiment.plot(x,y)
     f = ep.run(x,y,0.5, conv_tol=0.000001)
     testx, _ = experiment.getExampleData(1, noise=0.0)
-    x_test  =np.array([[0.1,0],[0.2,0],[0.3,0],[0.4,0],[0.5,0],[0.6,0],[0.7,0],[0.8,0],[0.9,0]])
-    x_test2  =np.array([[0,0.1],[0,0.2],[0,0.3],[0,0.4],[0,0.5],[0,0.6],[0,0.7],[0,0.8],[0,0.9]])
+    x_test  =np.array([[0.1,0],[0.2,0],[0.3,0],[0.4,0],[0.5,0],[-0.6,0],[-0.7,0],[-0.8,0],[-0.9,0]])
+    x_test2  =-1.0*x_test
     y_pred = [f(x) for x in x_test]
     y_pred2 = [f(x) for x in x_test2]
     print(x_test)
@@ -40,7 +40,7 @@ def main():
     plt.show()
     print(x_test2)
     print(y_pred2)
-    plt.scatter(x_test[:,0],y_pred2)
+    plt.scatter(x_test2[:,0],y_pred2)
     plt.show()
 
 
