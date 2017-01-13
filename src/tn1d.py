@@ -22,7 +22,11 @@ class tn1d:
         return piNew/piOld
 
     def getbBiNew(self, piNew: float, piOld: float)->float:#32
-        return (1.0 - piNew)/(1.0 - piOld)
+        if (piNew == piOld and piNew == 1.0):
+            return 0.0
+        else:
+            return (1.0 - piNew) / (1.0 - piOld)
+
 
     def getSi(self, z: float, viOld:float, vviiNew: float, c1: float, c3: float)-> float:#33 i think viiNew denotes the v comming from eq.19
         return z * np.sqrt((viOld +vviiNew)/vviiNew) * np.exp(0.5 * np.power(c1,2)/c3 )
@@ -50,11 +54,13 @@ class tn1d:
         return np.power(c1,2) - 2.0*c2
 
     def getG0(self, muiOld: float, viOld: float, sigma0: float)->float: #40
-        return norm.pdf(0.0, muiOld, viOld + np.power(sigma0,2))
+        return norm.pdf(0.0, loc= muiOld, scale = viOld + np.power(sigma0,2))
 
     def getG1(self, muiOld: float, viOld: float, sigma1: float)->float: #41
-        return norm.pdf(0.0, muiOld, viOld + np.power(sigma1,2))
+        return norm.pdf(0.0, loc = muiOld, scale = viOld + np.power(sigma1,2))
 
     def getPiOld(self, pi: float, aai:float, bbi:float)->float: #42
+        if (1.0 - pi == bbi):
+            return (pi/aai)/(pi/aai)
         return (pi/aai)/(pi/aai + (1.0 -pi)/bbi)
 

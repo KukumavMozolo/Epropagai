@@ -20,11 +20,11 @@ class ExpectationPropagation:
         d,n = x.shape
 
         self.iterationCounter = 0
-        max = 99999
+        max = 9999999999
 
-        mu = np.zeros(shape=(d)) # not sure how to initialize
-        v = np.ones(shape=(d))  # not sure how to initialize
-        p = np.ones(shape=(d)) * sparsety
+        self.mu = np.random.uniform(0.0, 1.0, size=(d))#np.zeros(shape=(d)) # not sure how to initialize
+        self.v = np.random.uniform(0.0, 1.0, size=(d))#  # not sure how to initialize
+        self.p = np.random.uniform(0.0, 1.0, size=(d))
 
         ## uniform initial condition of ti
         self.s = np.zeros(shape=(n + d))
@@ -38,7 +38,10 @@ class ExpectationPropagation:
         self.b_c = np.ones(shape=(n + d))
         self.vv_c = np.ones(shape=(d,n +d)) * max
         self.mmu_c = np.zeros(shape=(d,n + d))
-        while(self.notConverged(conv_tol)):
+        self.mu_c = np.random.uniform(0.0, 1.0, size=(d))#np.zeros(shape=(d)) # not sure how to initialize
+        self.v_c = np.random.uniform(0.0, 1.0, size=(d))#  # not sure how to initialize
+        self.p_c = np.ones(shape=(d)) * sparsety
+        while(self.notConverged2(conv_tol)):
             for i in range(n + d):  #refine approximation of ti
                 self.iterationCounter += 1
                 xi = x[:,np.random.random_integers(0,n-1)]
@@ -50,10 +53,10 @@ class ExpectationPropagation:
                 if(i <n): #the likelihoods
 
                     #where statement
-                    vOld = tn.getVOld(v, vvi)
+                    vOld = tn.getVOld(self.v, vvi)
                     if(np.where(vOld <0)[0].shape[0] >0): #whenever likelihood is negative ignore rule
                         continue
-                    muOld = tn.getMuOld(mu,vOld,vvi,mmi)
+                    muOld = tn.getMuOld(self.mu,vOld,vvi,mmi)
                     z = tn.getZi(xi,muOld,vOld)
                     ai = tn.getAlphai(xi,vOld,z)
 
@@ -61,25 +64,29 @@ class ExpectationPropagation:
                     vNew = tn.getVNew(vOld,xi,muNew,ai)
                     vviNew = tn.getvViNew(vNew,vOld)
                     mmiNew = tn.getMiNew(muOld,vviNew,xi,vOld,ai)
-                    #i think one can conclude that we should update only these(17-21)
                     si = tn.getSi(z,vviNew,vOld,mmiNew,muOld)
+                    #i think one can conclude that we should update only these(17-21)
                     self.vv[:, i] = vviNew
                     self.mmu[:, i] = mmiNew
-                    mu = muNew
-                    v = vNew
+                    self.mu = muNew
+                    self.v = vNew
                 else: #the priors
                     # 26 - 42
-                    vi = v[i-n]         #mentioned in eq.34. what is it?
-                    mui= mu[i-n]        # so is this in eq.35. what is it?
-                    pi = p[i-n]         #same here eq. 42 what is it?
+                    vi = self.v[i-n]         #mentioned in eq.34. what is it?
+                    mui= self.mu[i-n]        # so is this in eq.35. what is it?
+                    pi = self.p[i-n]         #same here eq. 42 what is it?
                     aai = self.a[:,i]
                     bbi = self.b[:,i]
+                    print(aai)
 
                     viOld = tn1.getViOld(vi, vvi[i-n])
                     muiOld = tn1.getMuiOld(mui,viOld,vvi[i-n],mmi[i-n])
                     g0 = tn1.getG0(muiOld,viOld,sigma0)
                     g1 = tn1.getG1(muiOld,viOld,sigma1)
-                    piOld = tn1.getPiOld(pi,aai[i-n],bbi[i-n])
+                    # piOld = np.prod(np.multiply(np.power(sparsety,self.p) , (1.0-np.power(sparsety,self.p))))# what was proposed in mail
+                    piOld = tn1.getPiOld(pi, aai[i - n], bbi[i - n]) # what is written in paper
+                    # piOld =  pi
+                    # piOld = sparsety
                     z = tn1.getZ(piOld,g1,g0)
                     c1 = tn1.getC1(z,piOld,g0,g1,muiOld,viOld,sigma1,sigma0)
                     c2 = tn1.getC2(z,piOld,g1,g0,muiOld,viOld,sigma1,sigma0)
@@ -99,16 +106,14 @@ class ExpectationPropagation:
                     self.b[i - n,i] = bbniiNew
                     self.vv[i - n,i] = vvniiNew
                     self.mmu[i - n,i]= mmniiNew
-                    v[i - n] = viNew
-                    mu[i - n] = muiNew
-                    p[i-n] = piNew
+                    self.v[i - n] = viNew
+                    self.mu[i - n] = muiNew
+                    self.p[i-n] = piNew
 
 
                 self.s[i] = si
         print("the algorithm took " + str(self.iterationCounter) + " iterations to converge!")
-        print(mu)
-        print(v)
-        def f(x) : return norm.cdf(np.dot(x.T, mu)/np.sqrt(np.dot(x.T,np.multiply(v,x.T).T) +1.0))
+        def f(x) : return norm.cdf(np.dot(x.T, self.mu)/np.sqrt(np.dot(x.T,np.multiply(self.v,x.T).T) +1.0))
         return f
 
 
@@ -129,10 +134,22 @@ class ExpectationPropagation:
             self.vv_c = self.vv.copy()
             self.mmu_c = self.mmu.copy()
             return True
-        False
+        return False
 
+    def notConverged2(self, conv_tol) -> bool:
+        d, n = self.a.shape
+        delta = np.sum(np.abs(self.v - self.v_c)) \
+                + np.sum(np.abs(self.mu - self.mu_c)) \
+                + np.sum(np.abs(self.p - self.p_c))
+        # delta /= d * n * 4
+        print("Parameter difference is " + str(delta) + " at iteration " + str(self.iterationCounter))
 
-
+        if (delta > conv_tol):
+            self.v_c = self.v.copy()
+            self.mu_c = self.mu.copy()
+            self.p_c = self.p.copy()
+            return True
+        return False
 
 
 
