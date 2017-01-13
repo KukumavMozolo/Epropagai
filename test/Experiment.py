@@ -26,21 +26,26 @@ class Experiment:
 def main():
     experiment = Experiment()
     ep = ExpectationPropagation()
-    x,y = experiment.getExampleData(100,noise=0.0)
+    x,y = experiment.getExampleData(1000,noise=0.0)
     experiment.plot(x,y)
-    f = ep.run(x,y,0.5, conv_tol=0.01)
+    f = ep.run(x,y,0.5, conv_tol=0.1)
     testx, _ = experiment.getExampleData(1, noise=0.0)
-    x_test  =np.array([[0.1,0],[0.2,0],[0.3,0],[0.4,0],[0.5,0],[-0.6,0],[-0.7,0],[-0.8,0],[-0.9,0]])
-    x_test2  =-1.0*x_test
-    y_pred = [f(x) for x in x_test]
-    y_pred2 = [f(x) for x in x_test2]
+    x_test  =np.array([[0.1,0],[0.2,0],[0.3,0],[0.4,0],[0.5,0],[0.6,0],[0.7,0],[0.8,0],[0.9,0]])
+    y_test  =np.array([1,1,1,1,-1,-1,-1,-1,-1])
+    n = 100
+    x_test, y_test = experiment.getExampleData(n, noise=0.0)
+    y_test= y_test.reshape((n))
+    x_test2  =x_test
+    y_test2  = -1.0*y_test
+    y_pred = [f(x) for x,y in zip(x_test.T,y_test)]
+    y_pred2 = [f(x) for x,y in zip(x_test2.T,y_test2)]
     print(x_test)
     print(y_pred)
-    plt.scatter(x_test[:,0],y_pred)
+    plt.scatter(x_test[0,:],y_pred)
     plt.show()
     print(x_test2)
     print(y_pred2)
-    plt.scatter(x_test2[:,0],y_pred2)
+    plt.scatter(x_test2[0,:],y_pred2)
     plt.show()
 
 

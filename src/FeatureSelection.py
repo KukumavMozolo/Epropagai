@@ -7,7 +7,7 @@ from src.tn1d import tn1d
 
 class ExpectationPropagation:
 
-    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.00000000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
+    def run(self, x: np.ndarray, y: np.ndarray, sparsety: float, sigma0: float = 0.00000000000001, sigma1: float = 1.0, iterations =-1, conv_tol= 0.00001) -> np.ndarray:
         xshape = x.shape
         yshape = y.shape
         assert xshape[1] == yshape[1], "x and y have different sample dimensions, x.shape = " + str(xshape)  + " y.shape = " + str(yshape)
@@ -24,7 +24,7 @@ class ExpectationPropagation:
 
         self.mu = np.random.uniform(0.0, 1.0, size=(d))#np.zeros(shape=(d)) # not sure how to initialize
         self.v = np.random.uniform(0.0, 1.0, size=(d))#  # not sure how to initialize
-        self.p = np.random.uniform(0.0, 1.0, size=(d))
+        self.p = np.ones(shape=(d)) * sparsety
 
         ## uniform initial condition of ti
         self.s = np.zeros(shape=(n + d))
@@ -83,10 +83,8 @@ class ExpectationPropagation:
                     muiOld = tn1.getMuiOld(mui,viOld,vvi[i-n],mmi[i-n])
                     g0 = tn1.getG0(muiOld,viOld,sigma0)
                     g1 = tn1.getG1(muiOld,viOld,sigma1)
-                    # piOld = np.prod(np.multiply(np.power(sparsety,self.p) , (1.0-np.power(sparsety,self.p))))# what was proposed in mail
-                    piOld = tn1.getPiOld(pi, aai[i - n], bbi[i - n]) # what is written in paper
-                    # piOld =  pi
-                    # piOld = sparsety
+                    piOld = np.prod(np.multiply(np.power(sparsety,self.p) , (1.0-np.power(sparsety,self.p))))# what was proposed in mail
+                    # piOld = tn1.getPiOld(pi, aai[i - n], bbi[i - n]) # what is written in paper
                     z = tn1.getZ(piOld,g1,g0)
                     c1 = tn1.getC1(z,piOld,g0,g1,muiOld,viOld,sigma1,sigma0)
                     c2 = tn1.getC2(z,piOld,g1,g0,muiOld,viOld,sigma1,sigma0)
@@ -113,7 +111,9 @@ class ExpectationPropagation:
 
                 self.s[i] = si
         print("the algorithm took " + str(self.iterationCounter) + " iterations to converge!")
-        def f(x) : return norm.cdf(np.dot(x.T, self.mu)/np.sqrt(np.dot(x.T,np.multiply(self.v,x.T).T) +1.0))
+        def f(x) : return (norm.cdf(np.dot(x.T, self.mu)/np.sqrt(np.dot(x.T,np.multiply(self.v,x.T).T) +1.0)) -
+                                  norm.cdf(
+                                      np.dot(-x.T, self.mu) / np.sqrt(np.dot(-x.T, np.multiply(self.v, -x.T).T) + 1.0)) -0.5)
         return f
 
 
